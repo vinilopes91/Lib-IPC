@@ -1,7 +1,7 @@
 #include <stdio.h>
  
  
-void ipc(void)
+void init(void)
 {
     puts("Hello, I am a shared library");
 }
