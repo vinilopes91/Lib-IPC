@@ -3,6 +3,7 @@
 
 int main(void)
 {
-    ipc_init();
+    puts("test");
+    initSM();
     return 0;
 }

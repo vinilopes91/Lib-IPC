@@ -1,6 +1,6 @@
 #ifndef ipc_h__
 #define ipc_h__
- 
-extern void ipc_init(void);
- 
+
+extern void initSM(void);
+
 #endif  // ipc_h__
