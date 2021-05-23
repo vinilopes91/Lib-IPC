@@ -4,9 +4,10 @@ DEBUG=-g
 OPT=-O0
 WARN=-Wall
 WERROR=-Werror
+PTHREAD=-pthread
 FPIC=-fpic
 SHARED=-shared
-CCFLAGS=$(DEBUG) $(OPT) $(WARN)
+CCFLAGS=$(DEBUG) $(OPT) $(WARN) $(PTHREAD)
 OBJS= ipc.o libipc.so
 LD_PATH=-L/home/viniciuslopes/Lib-IPC
 LIPC=-lipc
@@ -14,7 +15,7 @@ LIPC=-lipc
 all: main
 
 main: src/main.c libipc.so
-	$(CC) $(LD_PATH) $(CCFLAGS) -o main src/main.c $(LIPC)
+	$(CC) $(LD_PATH) $(CCFLAGS) -o test.exe src/main.c $(LIPC)
 
 libipc.so: src/ipc.o
 	$(CC) $(SHARED) -o libipc.so src/ipc.o
