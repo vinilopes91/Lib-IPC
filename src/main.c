@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "ipc.h"
- 
+
 int main(void)
 {
     puts("test");
