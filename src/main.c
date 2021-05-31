@@ -8,21 +8,21 @@
 #include <sys/wait.h>
 #include <sys/shm.h>
 #include <semaphore.h>
-#include <stdint.h>
 #include "ipc.h"
 
 void *handle_thread(void *ptr);
 
 int main(void)
 {
-    int smid = initSM();
+    initSM(5648);
     pthread_t thread;
-    ipc_message teste = "abcde";
+    ipc_message message = "523xp";
 
-    pthread_create(&thread, NULL, handle_thread, (void *)(intptr_t)smid);
+    pthread_create(&thread, NULL, handle_thread, (void *)(pthread_t)pthread_self());
 
     sleep(2);
-    sendS(smid, teste);
+
+    sendS(thread, message);
 
     pthread_join(thread, NULL);
 
@@ -31,12 +31,12 @@ int main(void)
 
 void *handle_thread(void *ptr)
 {
-    int smid = (intptr_t) ptr;
+    pthread_t thread_id = (pthread_t) ptr;
     ipc_message msg;
 
-    printf("Esperando receber mensagem\n");
-    receiveS(smid, msg);
-    printf("Mensagem recebida: %s\n", (char *)msg);
+    receiveS(thread_id, msg);
+
+    printf("Mensagem lida pela thread: %s\n", (char *) msg);
 
     pthread_exit(NULL);
 }
