@@ -12,19 +12,29 @@
 
 void *handle_thread(void *ptr);
 
+#define MAX_THREADS 10
+
 int main(void)
 {
     initSM(5648);
-    pthread_t thread;
-    ipc_message message = "523xp";
+    pthread_t thread[MAX_THREADS];
+    ipc_message message;
 
-    pthread_create(&thread, NULL, handle_thread, (void *)(pthread_t)pthread_self());
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        pthread_create(&thread[i], NULL, handle_thread, (void *)(pthread_t)pthread_self());
+    }
 
-    sleep(2);
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        sprintf((char *)message, "msg=%d", i);
+        sendS(thread[i], message);
+    }
 
-    sendS(thread, message);
-
-    pthread_join(thread, NULL);
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        pthread_join(thread[i], NULL);
+    }
 
     return 0;
 }
@@ -34,9 +44,15 @@ void *handle_thread(void *ptr)
     pthread_t thread_id = (pthread_t) ptr;
     ipc_message msg;
 
-    receiveS(thread_id, msg);
+    if (receiveS(thread_id, msg) == -1)
+    {
+        printf("Buffer cheio\n");
+    }
+    else
+    {
+        printf("Mensagem lida pela thread: %s\n", (char *) msg);
+    }
 
-    printf("Mensagem lida pela thread: %s\n", (char *) msg);
 
     pthread_exit(NULL);
 }

@@ -8,8 +8,6 @@
 #include <semaphore.h>
 #include "ipc.h"
 
-#define MAX_BUFFER 10
-
 typedef struct lista
 {
     int qtd;
@@ -18,25 +16,22 @@ typedef struct lista
 
 struct shared_area
 {
-    sem_t mutex_buffer_S;
-    sem_t mutex_buffer_A;
-    lista list_S[MAX_BUFFER];
-    lista list_A[MAX_BUFFER];
+    sem_t mutex_buffer;
+    lista list;
 };
 
-int find_index(lista *li, int source_id, int dest_id);
-int push(lista *li, int source_id, int dest_id, ipc_message message);
-int remove_message(lista *li, int source_id, int dest_id);
+int find_index(lista *li, pthread_t source_id, pthread_t dest_id);
+int push(lista *li, pthread_t source_id, pthread_t dest_id, ipc_message message);
+int remove_message(lista *li, pthread_t source_id, pthread_t dest_id);
 
 struct shared_area *shared_area_ptr;
 
-// initSM para cada thread/processo que for usar?
 void initSM(key_t shm_key)
 {
     int shmid;
     void *shared_memory = (void *)0;
 
-    shmid = shmget(shm_key, sizeof(struct shared_area), 0666 | IPC_CREAT);
+    shmid = shmget(shm_key, MEM_SIZE, 0666 | IPC_CREAT);
 
     if (shmid == -1)
     {
@@ -47,20 +42,13 @@ void initSM(key_t shm_key)
     shared_memory = shmat(shmid, (void *)0, 0);
     shared_area_ptr = (struct shared_area *)shared_memory;
 
-    // caso for dar init em cada thread/processo que for usar, não dar mais de um sem_init
-    if (sem_init((sem_t *)&shared_area_ptr->mutex_buffer_S, 1, 1) != 0)
+    if (sem_init((sem_t *)&shared_area_ptr->mutex_buffer, 1, 1) != 0)
     {
-        printf("sem_init mutex_buffer_S falhou\n");
-        return;
-    }
-    if (sem_init((sem_t *)&shared_area_ptr->mutex_buffer_A, 1, 1) != 0)
-    {
-        printf("sem_init mutex_buffer_A falhou\n");
+        printf("sem_init mutex_buffer falhou\n");
         return;
     }
 
-    shared_area_ptr->list_A->qtd = 0;
-    shared_area_ptr->list_S->qtd = 0;
+    shared_area_ptr->list.qtd = 0;
 }
 
 int sendS(pthread_t dest_id, ipc_message message)
@@ -68,24 +56,23 @@ int sendS(pthread_t dest_id, ipc_message message)
     int write = 0;
     int msg_write_index;
 
-    sem_wait((sem_t *)&shared_area_ptr->mutex_buffer_S);
-    int msg_index = find_index(shared_area_ptr->list_S, pthread_self(), dest_id);
+    sem_wait((sem_t *)&shared_area_ptr->mutex_buffer);
+    int msg_index = find_index(&shared_area_ptr->list, pthread_self(), dest_id);
     if (msg_index != -1) // Verifica se existe alguma thread esperando que seja enviada uma msg
     {
-        strcpy((char *)shared_area_ptr->list_S->buffer[msg_index].message, (char *)message);
-        sem_post((sem_t *)&shared_area_ptr->list_S->buffer[msg_index].mutex_sync);
+        strcpy((char *)shared_area_ptr->list.buffer[msg_index].message, (char *)message);
+        sem_post((sem_t *)&shared_area_ptr->list.buffer[msg_index].mutex_sync);
     }
-    else if (shared_area_ptr->list_S->qtd == MAX_BUFFER)
+    else if (shared_area_ptr->list.qtd == MAX_BUFFER)
     {
+        sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
         return -1;
     }
-    else if (shared_area_ptr->list_S->qtd < MAX_BUFFER)
+    else if (shared_area_ptr->list.qtd < MAX_BUFFER)
     {
-        printf("[sendS] Guardando msg no buffer\n");
-        msg_write_index = push(shared_area_ptr->list_S, pthread_self(), dest_id, message);
+        msg_write_index = push(&shared_area_ptr->list, pthread_self(), dest_id, message);
         if (msg_write_index != -1)
         {
-            printf("[sendS] Mensagem armazenada no buffer\n");
             write = 1;
         }
         else
@@ -93,13 +80,12 @@ int sendS(pthread_t dest_id, ipc_message message)
             printf("[sendS] Falha ao armazenar mensagem\n");
         }
     }
-    sem_post((sem_t *)&shared_area_ptr->mutex_buffer_S);
+    sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
 
     if (write == 1)
     {
         printf("[sendS] Aguardando leitura da msg\n");
-        sem_wait((sem_t *)&shared_area_ptr->list_S->buffer[msg_write_index].mutex_sync); // Trava a thread até receiveS da msg escrita
-        printf("[sendS] Mensagem lida\n");
+        sem_wait((sem_t *)&shared_area_ptr->list.buffer[msg_write_index].mutex_sync); // Trava a thread até receiveS da msg escrita
     }
 
     return 0;
@@ -107,55 +93,51 @@ int sendS(pthread_t dest_id, ipc_message message)
 
 int receiveS(pthread_t source_id, ipc_message message) // source_id = (pid ou tid)
 {
-    int read = 0;
-    int msg_read_index;
+    int write = 0;
+    int msg_write_index;
 
-    sem_wait((sem_t *)&shared_area_ptr->mutex_buffer_S);
-    int msg_index = find_index(shared_area_ptr->list_S, source_id, pthread_self());
+    sem_wait((sem_t *)&shared_area_ptr->mutex_buffer);
+    int msg_index = find_index(&shared_area_ptr->list, source_id, pthread_self());
     if (msg_index != -1) // Verifica se existe alguma thread esperando que seja lida alguma msg
     {
-        strcpy((char *)message, (char *)shared_area_ptr->list_S->buffer[msg_index].message);
-        sem_post((sem_t *)&shared_area_ptr->list_S->buffer[msg_index].mutex_sync);
-        remove_message(shared_area_ptr->list_S, source_id, pthread_self());
+        strcpy((char *)message, (char *)shared_area_ptr->list.buffer[msg_index].message);
+        sem_post((sem_t *)&shared_area_ptr->list.buffer[msg_index].mutex_sync);
+        remove_message(&shared_area_ptr->list, source_id, pthread_self());
     }
-    else if (shared_area_ptr->list_S->qtd == MAX_BUFFER) // Não achou msg no buffer e o buffer esta cheio
+    else if (shared_area_ptr->list.qtd == MAX_BUFFER) // Não achou msg no buffer e o buffer esta cheio
     {
+        sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
         return -1;
     }
-    else if (shared_area_ptr->list_S->qtd < MAX_BUFFER) // Registra uma msg no buffer para ser lida
+    else if (shared_area_ptr->list.qtd < MAX_BUFFER) // Registra uma msg no buffer para ser lida
     {
-        printf("[receiveS] Adicionando message_data no buffer\n");
-        msg_read_index = push(shared_area_ptr->list_S, source_id, pthread_self(), message);
-        if (msg_read_index != -1)
+        msg_write_index = push(&shared_area_ptr->list, source_id, pthread_self(), message);
+        if (msg_write_index != -1)
         {
-            printf("[receiveS] message_data armazenada no buffer\n");
-            read = 1;
+            write = 1;
         }
         else
         {
             printf("[receiveS] Falha ao armazenar message_data\n");
         }
     }
-    sem_post((sem_t *)&shared_area_ptr->mutex_buffer_S);
+    sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
 
-    if (read == 1)
+    if (write == 1)
     {
-        printf("[receiveS] Aguardando envio da msg\n");
-        sem_wait((sem_t *)&shared_area_ptr->list_S->buffer[msg_read_index].mutex_sync); // Trava a thread até receiveS da msg escrita
+        printf("[receiveS] Aguardando envio da msg %lu\n", pthread_self());
+        sem_wait((sem_t *)&shared_area_ptr->list.buffer[msg_write_index].mutex_sync); // Trava a thread até receiveS da msg escrita
 
-        sem_wait((sem_t *)&shared_area_ptr->mutex_buffer_S);
-        int msg_index = find_index(shared_area_ptr->list_S, source_id, pthread_self());
-        strcpy((char *)message, (char *)shared_area_ptr->list_S->buffer[msg_index].message);
-        remove_message(shared_area_ptr->list_S, source_id, pthread_self());
-        sem_post((sem_t *)&shared_area_ptr->mutex_buffer_S);
-
-        printf("[receiveS] Mensagem lida\n");
+        sem_wait((sem_t *)&shared_area_ptr->mutex_buffer);
+        int msg_index = find_index(&shared_area_ptr->list, source_id, pthread_self());
+        strcpy((char *)message, (char *)shared_area_ptr->list.buffer[msg_index].message);
+        remove_message(&shared_area_ptr->list, source_id, pthread_self());
+        sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
     }
-
     return 0;
 }
 
-int push(lista *li, int source_id, int dest_id, ipc_message message)
+int push(lista *li, pthread_t source_id, pthread_t dest_id, ipc_message message)
 {
     if (li == NULL)
     {
@@ -184,7 +166,7 @@ int push(lista *li, int source_id, int dest_id, ipc_message message)
     return index;
 }
 
-int remove_message(lista *li, int source_id, int dest_id)
+int remove_message(lista *li, pthread_t source_id, pthread_t dest_id)
 {
     if (li == NULL)
     {
@@ -220,7 +202,7 @@ int remove_message(lista *li, int source_id, int dest_id)
     return 0;
 }
 
-int find_index(lista *li, int source_id, int dest_id)
+int find_index(lista *li, pthread_t source_id, pthread_t dest_id)
 {
     if (li == NULL)
     {
@@ -233,8 +215,12 @@ int find_index(lista *li, int source_id, int dest_id)
 
     int index = 0;
 
-    while (index < li->qtd && li->buffer[index].dest_id != dest_id && li->buffer[index].source_id != source_id)
+    while (index < li->qtd)
     {
+        if (li->buffer[index].source_id == source_id && li->buffer[index].dest_id == dest_id)
+        {
+            break;
+        }
         index++;
     }
     if (index == li->qtd)

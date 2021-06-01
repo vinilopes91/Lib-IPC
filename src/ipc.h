@@ -1,7 +1,9 @@
 #ifndef ipc_h__
 #define ipc_h__
 
-#define MSG_LENGTH 5
+#define MEM_SIZE 4096
+#define MSG_LENGTH 50
+#define MAX_BUFFER (MEM_SIZE - sizeof(sem_t) - sizeof(int)) / sizeof(message_data)
 
 typedef unsigned char ipc_message[MSG_LENGTH];
 
