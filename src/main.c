@@ -12,11 +12,11 @@
 
 void *handle_thread(void *ptr);
 
-#define MAX_THREADS 10
+#define MAX_THREADS 49
 
 int main(void)
 {
-    initSM(5648);
+    initSM();
     pthread_t thread[MAX_THREADS];
     ipc_message message;
 
@@ -36,11 +36,14 @@ int main(void)
         pthread_join(thread[i], NULL);
     }
 
+    printf("\nFim do programa principal\n");
+
     return 0;
 }
 
 void *handle_thread(void *ptr)
 {
+    initSM();
     pthread_t thread_id = (pthread_t) ptr;
     ipc_message msg;
 
@@ -52,7 +55,6 @@ void *handle_thread(void *ptr)
     {
         printf("Mensagem lida pela thread: %s\n", (char *) msg);
     }
-
 
     pthread_exit(NULL);
 }
