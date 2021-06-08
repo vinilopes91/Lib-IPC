@@ -3,9 +3,11 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/shm.h>
 #include <string.h>
 #include <semaphore.h>
+#include <sys/ipc.h>
 #include "ipc.h"
 
 typedef struct thread_mutex_sync
@@ -47,6 +49,7 @@ int initSM()
 {
     int shmid;
     void *shared_memory = NULL;
+    key_t shm_key = (key_t)rand_interval(1, 100);
 
     if (sem_init((sem_t *)&mutex_lib, 1, 1) != 0)
     {
@@ -57,13 +60,13 @@ int initSM()
     sem_wait((sem_t *)&mutex_lib);
     if (lib_ready == 0)
     {
-        int shm_key = rand_interval(1, 10000);
-
-        shmid = shmget(shm_key, MEM_SIZE, IPC_CREAT | 0666);
+        shmid = shmget(shm_key, 65536, IPC_CREAT | SHM_HUGETLB | 0666);
 
         if (shmid == -1)
         {
             printf("Falha ao iniciar\n");
+            printf("%d\n", errno);
+            perror("Error: ");
             return -1;
         }
 
@@ -86,8 +89,18 @@ int initSM()
         threads_registry.qtd = 1;
         lib_ready = 1;
     }
+    else if (shared_area_ptr == NULL)
+    {
+        return -1;
+    }
     else
     {
+        if (threads_registry.qtd == MAX_REGISTRY)
+        {
+            printf("Número máximo de threads registrado.\n");
+            sem_post((sem_t *)&mutex_lib);
+            return -1;
+        }
         threads_registry.threads[threads_registry.qtd].thread_id = pthread_self();
         if (sem_init((sem_t *)&threads_registry.threads[threads_registry.qtd].mutex, 1, 0) != 0)
         {

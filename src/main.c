@@ -12,11 +12,16 @@
 
 void *handle_thread(void *ptr);
 
-#define MAX_THREADS 49
+#define MAX_THREADS MAX_REGISTRY - 1
 
 int main(void)
 {
-    initSM();
+    if (initSM() == -1)
+    {
+        printf("Falha thread principal\n");
+        return 0;
+    }
+
     pthread_t thread[MAX_THREADS];
     ipc_message message;
 
