@@ -12,7 +12,7 @@
 
 void *handle_thread(void *ptr);
 
-#define MAX_THREADS 49
+#define MAX_THREADS MAX_REGISTRY - 1
 
 int main(void)
 {

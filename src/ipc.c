@@ -95,6 +95,12 @@ int initSM()
     }
     else
     {
+        if (threads_registry.qtd == MAX_REGISTRY)
+        {
+            printf("Número máximo de threads registrado.\n");
+            sem_post((sem_t *)&mutex_lib);
+            return -1;
+        }
         threads_registry.threads[threads_registry.qtd].thread_id = pthread_self();
         if (sem_init((sem_t *)&threads_registry.threads[threads_registry.qtd].mutex, 1, 0) != 0)
         {
