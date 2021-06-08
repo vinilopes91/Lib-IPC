@@ -16,7 +16,12 @@ void *handle_thread(void *ptr);
 
 int main(void)
 {
-    initSM();
+    if (initSM() == -1)
+    {
+        printf("Falha thread principal\n");
+        return 0;
+    }
+
     pthread_t thread[MAX_THREADS];
     ipc_message message;
 
