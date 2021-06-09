@@ -80,7 +80,7 @@ int initSM()
             printf("sem_init mutex_buffer falhou\n");
             return -1;
         }
-	shared_area_ptr->list.write = 0;
+	    shared_area_ptr->list.write = 0;
         shared_area_ptr->list.qtd = 0;
 
         threads_registry.threads[threads_registry.qtd].thread_id = pthread_self();
@@ -123,17 +123,17 @@ int sendA(pthread_t dest_id, ipc_message message){
     {
 	if(shared_area_ptr->list.write == 0)
 	{
-	    shared_area_ptr->list.write = 1;
+	        shared_area_ptr->list.write = 1;
             strcpy((char *)shared_area_ptr->list.buffer[msg_index].message, (char *)message);
-	    shared_area_ptr->list.write = 0;
-	    return 0;
+	        shared_area_ptr->list.write = 0;
+	        return 0;
 	}
 	else
 		return -2;//está ocupado
     }
     else if(shared_area_ptr->list.qtd < MAX_BUFFER) {
 	if(shared_area_ptr->list.write == 0){
-	    shared_area_ptr->list.write = 1;	
+	        shared_area_ptr->list.write = 1;	
             if(push(&shared_area_ptr->list, pthread_self(), dest_id, message) == -1){
 	            shared_area_ptr->list.write = 0;
 		    return -1;
