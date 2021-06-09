@@ -20,6 +20,7 @@ typedef struct lista
 {
     int qtd;
     message_data buffer[MAX_BUFFER];
+    int write;
 } lista;
 
 typedef struct lista_threads
@@ -44,6 +45,7 @@ struct shared_area *shared_area_ptr;
 sem_t mutex_lib;
 lista_threads threads_registry;
 int lib_ready = 0;
+
 
 int initSM()
 {
@@ -78,6 +80,7 @@ int initSM()
             printf("sem_init mutex_buffer falhou\n");
             return -1;
         }
+	shared_area_ptr->list.write = 0;
         shared_area_ptr->list.qtd = 0;
 
         threads_registry.threads[threads_registry.qtd].thread_id = pthread_self();
@@ -112,6 +115,40 @@ int initSM()
     sem_post((sem_t *)&mutex_lib);
 
     return 0;
+}
+int sendA(pthread_t dest_id, ipc_message message){
+    
+    int msg_index = find_message_index(&shared_area_ptr->list, pthread_self(), dest_id);
+    if (msg_index != -1)
+    {
+	if(shared_area_ptr->list.write == 0)
+	{
+	    shared_area_ptr->list.write = 1;
+            strcpy((char *)shared_area_ptr->list.buffer[msg_index].message, (char *)message);
+	    shared_area_ptr->list.write = 0;
+	    return 0;
+	}
+	else
+		return -2;//está ocupado
+    }
+    else if(shared_area_ptr->list.qtd < MAX_BUFFER) {
+	if(shared_area_ptr->list.write == 0){
+	    shared_area_ptr->list.write = 1;	
+            if(push(&shared_area_ptr->list, pthread_self(), dest_id, message) == -1){
+	            shared_area_ptr->list.write = 0;
+		    return -1;
+	    }
+	    else{
+		    shared_area_ptr->list.write = 0;
+		    return 0;
+	    }
+	}
+	else
+		return -2;//está ocupado
+    }
+    else {
+	    return -1;
+    }
 }
 
 int sendS(pthread_t dest_id, ipc_message message)
@@ -160,6 +197,21 @@ int sendS(pthread_t dest_id, ipc_message message)
     }
 
     return 0;
+}
+int receiveA(pthread_t source_id, ipc_message message)
+{
+   
+   int msg_index = find_message_index(&shared_area_ptr->list, source_id, pthread_self());
+   if (msg_index != -1)
+   {
+      strcpy((char *)message, (char *)shared_area_ptr->list.buffer[msg_index].message);
+      remove_message(&shared_area_ptr->list, source_id, pthread_self());
+      return 0;
+
+   }
+   else {
+       return -1;
+   }
 }
 
 int receiveS(pthread_t source_id, ipc_message message) // source_id = (pid ou tid)
