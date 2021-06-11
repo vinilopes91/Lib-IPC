@@ -34,7 +34,7 @@ int main(void)
     {
         sprintf((char *)message, "msg=%d", i);
         sendS(thread[i], message);
-	//while(sendA(thread[i], message) != -2)
+	    //sendA(thread[i], message)
     }
 
     for (int i = 0; i < MAX_THREADS; i++)
