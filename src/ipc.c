@@ -125,7 +125,7 @@ int sendA(pthread_t dest_id, ipc_message message){
 	//{
 	//    shared_area_ptr->list.write = 1;
         strcpy((char *)shared_area_ptr->list.buffer[msg_index].message, (char *)message);
-	    shared_area_ptr->list.write = 0;
+	//    shared_area_ptr->list.write = 0;
 	    return 0;
 	//}
 	//else
@@ -135,7 +135,7 @@ int sendA(pthread_t dest_id, ipc_message message){
 	//if(shared_area_ptr->list.write == 0){
 	//        shared_area_ptr->list.write = 1;	
         if(push(&shared_area_ptr->list, pthread_self(), dest_id, message) == -1){
-	    //        shared_area_ptr->list.write = 0;
+	//            shared_area_ptr->list.write = 0;
 		    return -1;
 	    }
 	    else{
