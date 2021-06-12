@@ -1,4 +1,3 @@
-TARGET = test
 CC = gcc
 DEBUG = -g
 OPT = -O0
@@ -10,13 +9,16 @@ SHARED = -shared
 CCFLAGS = ${DEBUG} ${OPT} ${WARN} ${PTHREAD}
 LIBFLAGS = ${WARN} ${WERROR} ${FPIC}
 OBJS = ipc.o libipc.so
-LD_PATH = -L/home/leonardommj/Lib-IPC
+LD_PATH = -L/home/viniciuslopes/Lib-IPC
 LIPC = -lipc
 
-all: main
+all: sendA-example sendS-example
 
-main: src/main.c libipc.so
-	${CC} ${LD_PATH} ${CCFLAGS} -o test.exe src/main.c ${LIPC}
+sendA-example: src/sendA-example.c libipc.so
+	${CC} ${LD_PATH} ${CCFLAGS} -o sendA-example.exe src/sendA-example.c ${LIPC}
+
+sendS-example: src/sendS-example.c libipc.so
+	${CC} ${LD_PATH} ${CCFLAGS} -o sendS-example.exe src/sendS-example.c ${LIPC}
 
 libipc.so: ipc.o
 	${CC} ${SHARED} -o libipc.so src/ipc.o
