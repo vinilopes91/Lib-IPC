@@ -16,9 +16,9 @@ typedef struct message_data
 } message_data;
 
 int initSM();
-int sendA(pthread_t dest_id, ipc_message message);
+int sendA(pthread_t dest_id, ipc_message message, int control);
 int sendS(pthread_t dest_id, ipc_message message);
-int receiveA(pthread_t source_id, ipc_message message);
+int receiveA(pthread_t source_id, ipc_message message, int control);
 int receiveS(pthread_t source_id, ipc_message message);
 int is_emptyA(void);
 

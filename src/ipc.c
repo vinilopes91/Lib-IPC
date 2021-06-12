@@ -115,28 +115,37 @@ int initSM()
 
     return 0;
 }
-int sendA(pthread_t dest_id, ipc_message message)
+int sendA(pthread_t dest_id, ipc_message message, int control)
 {
-
+    if(control == 1)
+        sem_wait((sem_t *)&shared_area_ptr->mutex_buffer);
     int msg_index = find_message_index(&shared_area_ptr->listA, pthread_self(), dest_id);
     if (msg_index != -1)
     {
         strcpy((char *)shared_area_ptr->listA.buffer[msg_index].message, (char *)message);
-        return 0;
+	if(control == 1)
+            sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
+	return 0;
     }
     else if (shared_area_ptr->listA.qtd < MAX_BUFFER)
     {
         if (push(&shared_area_ptr->listA, pthread_self(), dest_id, message) == -1)
         {
+	    if(control == 1)
+	        sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
             return -1;
         }
         else
         {
+	    if(control == 1)
+                sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
             return 0;
         }
     }
     else
     {
+	if(control == 1)
+	    sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
         return -1; // cheio
     }
 }
@@ -189,18 +198,23 @@ int sendS(pthread_t dest_id, ipc_message message)
     return 0;
 }
 
-int receiveA(pthread_t source_id, ipc_message message)
+int receiveA(pthread_t source_id, ipc_message message, int control)
 {
-
+    if(control == 1)
+        sem_wait((sem_t *)&shared_area_ptr->mutex_buffer);
     int msg_index = find_message_index(&shared_area_ptr->listA, source_id, pthread_self());
     if (msg_index != -1)
     {
         strcpy((char *)message, (char *)shared_area_ptr->listA.buffer[msg_index].message);
         remove_message(&shared_area_ptr->listA, source_id, pthread_self());
+	if(control == 1)
+	    sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
         return 0;
     }
     else
     {
+	if(control == 1)
+	    sem_post((sem_t *)&shared_area_ptr->mutex_buffer);
         return -1;
     }
 }

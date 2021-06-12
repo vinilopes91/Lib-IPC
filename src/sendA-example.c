@@ -33,7 +33,7 @@ int main(void)
     for (int i = 0; i < MAX_THREADS; i++)
     {
         sprintf((char *)message, "msg=%d", i);
-        sendA(thread[i], message);
+        sendA(thread[i], message, 1);
     }
 
     for (int i = 0; i < MAX_THREADS; i++)
@@ -57,7 +57,7 @@ void *handle_thread(void *ptr)
         puts("Aguardando Mensagens");
         sleep(1);
     }
-    if (receiveA(thread_id, msg) == -1)
+    if (receiveA(thread_id, msg, 1) == -1)
     {
         printf("Mensagem nao encontrada\n");
     }
