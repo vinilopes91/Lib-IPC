@@ -33,7 +33,6 @@ int main(void)
     for (int i = 0; i < MAX_THREADS; i++)
     {
         sprintf((char *)message, "msg=%d", i);
-    //    sendS(thread[i], message);
         sendA(thread[i], message);
     }
 
@@ -49,21 +48,22 @@ int main(void)
 
 void *handle_thread(void *ptr)
 {
-  
+
     initSM();
-    pthread_t thread_id = (pthread_t) ptr;
+    pthread_t thread_id = (pthread_t)ptr;
     ipc_message msg;
-    while(is_emptyA() == 0){
-	    puts("Aguardando Mensagens");
-	    sleep(1);
+    while (is_emptyA() == 0)
+    {
+        puts("Aguardando Mensagens");
+        sleep(1);
     }
-    if(receiveA(thread_id, msg) == -1)
+    if (receiveA(thread_id, msg) == -1)
     {
         printf("Mensagem nao encontrada\n");
     }
-    else{
-    printf("Mensagem lida pela thread: %s\n", (char *) msg);
-    
+    else
+    {
+        printf("Mensagem lida pela thread: %s\n", (char *)msg);
     }
     pthread_exit(NULL);
 }

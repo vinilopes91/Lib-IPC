@@ -4,7 +4,7 @@
 #define MAX_REGISTRY 50
 #define MEM_SIZE 131072
 #define MSG_LENGTH 512
-#define MAX_BUFFER (MEM_SIZE - sizeof(sem_t) - sizeof(int)) / sizeof(message_data)
+#define MAX_BUFFER ((MEM_SIZE - sizeof(sem_t) - sizeof(int)) / sizeof(message_data)) / 2
 
 typedef unsigned char ipc_message[MSG_LENGTH];
 
