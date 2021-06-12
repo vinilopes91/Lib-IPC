@@ -9,7 +9,7 @@ SHARED = -shared
 CCFLAGS = ${DEBUG} ${OPT} ${WARN} ${PTHREAD}
 LIBFLAGS = ${WARN} ${WERROR} ${FPIC}
 OBJS = ipc.o libipc.so
-LD_PATH = -L/home/leonardommj/Lib-IPC
+LD_PATH = -L/home/viniciuslopes/Lib-IPC
 LIPC = -lipc
 
 all: sendA-example sendS-example
